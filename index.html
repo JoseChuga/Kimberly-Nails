@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Felicidades!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0a0f2e;
+        }
+
+        #fireworksCanvas {
+            display: block;
+        }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-family: 'Arial', sans-serif;
+            font-size: 3em;
+            color: #ffdd57;
+            text-shadow: 0 0 10px rgba(255, 221, 87, 0.8), 0 0 20px rgba(255, 221, 87, 0.6);
+            padding: 0 20px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="fireworksCanvas"></canvas>
+    <div class="message">
+        FELICIDADES, GANASTE UNA GIFT CARD POR PARTE DE KIMBERLY NAILS.<br>
+        ¡ESPERAMOS QUE LO DISFRUTES DE PARTE DEL 10MO. CICLO!
+    </div>
+    <script>
+        const canvas = document.getElementById('fireworksCanvas');
+        const ctx = canvas.getContext('2d');
+        let cw, ch;
+        let stars = [];
+
+        function resize() {
+            cw = canvas.width = window.innerWidth;
+            ch = canvas.height = window.innerHeight;
+            // Generar estrellas para fondo
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({ x: Math.random() * cw, y: Math.random() * ch, r: Math.random() * 1.5 + 0.5 });
+            }
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Firework {
+            constructor() {
+                this.x = cw * Math.random();
+                this.y = ch;
+                this.targetX = cw * Math.random();
+                this.targetY = Math.random() * ch * 0.5;
+                this.speed = 2 + Math.random() * 3;
+                this.angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+                this.trail = [];
+            }
+            update() {
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > 20) this.trail.shift();
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                const dist = Math.hypot(this.x - this.targetX, this.y - this.targetY);
+                return dist < 10;
+            }
+            draw() {
+                ctx.beginPath();
+                for (let i = 0; i < this.trail.length - 1; i++) {
+                    const p1 = this.trail[i];
+                    const p2 = this.trail[i + 1];
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.stroke();
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.speed = Math.random() * 5 + 1;
+                this.angle = Math.random() * Math.PI * 2;
+                this.alpha = 1;
+                this.decay = 0.015 + Math.random() * 0.015;
+                this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+            }
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                this.alpha -= this.decay;
+                return this.alpha <= 0;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        let fireworks = [];
+        let particles = [];
+
+        function loop() {
+            requestAnimationFrame(loop);
+            // Efecto de estelas suaves
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(10,15,46,0.3)';
+            ctx.fillRect(0, 0, cw, ch);
+            // Dibujar estrellas
+            ctx.globalCompositeOperation = 'source-over';
+            stars.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = 'white';
+                ctx.fill();
+            });
+            // Combinar para luces brillantes
+            ctx.globalCompositeOperation = 'lighter';
+
+            if (Math.random() < 0.05) {
+                fireworks.push(new Firework());
+            }
+
+            fireworks = fireworks.filter(fw => {
+                fw.draw();
+                if (fw.update()) {
+                    for (let i = 0; i < 50; i++) {
+                        particles.push(new Particle(fw.x, fw.y));
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+            particles = particles.filter(p => {
+                p.draw();
+                return !p.update();
+            });
+        }
+
+        loop();
+    </script>
+</body>
+</html>
